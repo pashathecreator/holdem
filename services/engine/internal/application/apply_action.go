@@ -97,6 +97,7 @@ func (uc *ApplyAction) Execute(ctx context.Context, input ApplyActionInput) (*do
 func advanceStreet(state *domain.GameState) error {
 	domain.CollectBets(state)
 	state.CurrentBet = 0
+	state.RaisesThisStreet = 0
 	state.ActivePlayer = domain.FirstActiveAfterButton(state)
 
 	switch state.Street {

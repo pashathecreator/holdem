@@ -39,11 +39,17 @@ func NewServer(
 
 func (s *Server) StartHand(ctx context.Context, req *enginev1.StartHandRequest) (*enginev1.StartHandResponse, error) {
 	input := application.StartHandInput{
-		TableID:    domain.TableID(req.TableId),
-		Players:    protoPlayersToDoomain(req.Players),
-		Button:     int(req.Button),
-		SmallBlind: int(req.SmallBlind),
-		BigBlind:   int(req.BigBlind),
+		TableID: domain.TableID(req.TableId),
+		Players: protoPlayersToDoomain(req.Players),
+		Button:  int(req.Button),
+		BettingConfig: domain.BettingConfig{
+			Structure:          domain.BettingFixedLimit,
+			SmallBlind:         int(req.SmallBlind),
+			BigBlind:           int(req.BigBlind),
+			SmallBet:           int(req.BigBlind),
+			BigBet:             int(req.BigBlind) * 2,
+			MaxRaisesPerStreet: 4,
+		},
 	}
 
 	state, err := s.startHand.Execute(ctx, input)

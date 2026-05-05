@@ -1,5 +1,20 @@
 package domain
 
+type BettingStructure byte
+
+const (
+	BettingFixedLimit BettingStructure = iota
+)
+
+type BettingConfig struct {
+	Structure          BettingStructure
+	SmallBlind         int
+	BigBlind           int
+	SmallBet           int
+	BigBet             int
+	MaxRaisesPerStreet int
+}
+
 func ValidateAction(state *GameState, action Action) error {
 	player := state.Players[state.ActivePlayer]
 
@@ -16,18 +31,31 @@ func ValidateAction(state *GameState, action Action) error {
 		if state.CurrentBet > player.CurrentBet {
 			return ErrInvalidAction
 		}
+
 	case ActionCall:
 		if state.CurrentBet == player.CurrentBet {
 			return ErrInvalidAction
 		}
+
 	case ActionRaise:
-		if action.Amount < state.CurrentBet+state.BigBlind {
+		if state.RaisesThisStreet >= state.MaxRaisesPerStreet {
+			return ErrRaiseCapReached
+		}
+
+		expectedRaiseTo := state.CurrentBet + state.BetSizeForStreet()
+		if action.Amount != expectedRaiseTo {
 			return ErrInvalidRaiseAmount
 		}
+
 		if action.Amount > player.Stack+player.CurrentBet {
 			return ErrInsufficientStack
 		}
-	case ActionFold, ActionAllIn:
+
+	case ActionFold:
+
+	case ActionAllIn:
+		return ErrInvalidAction
+
 	default:
 		return ErrInvalidAction
 	}
@@ -58,15 +86,13 @@ func ApplyAction(state *GameState, action Action) {
 		player.Stack -= amount
 		player.CurrentBet = action.Amount
 		state.CurrentBet = action.Amount
+		state.RaisesThisStreet++
+
 		if player.Stack == 0 {
 			player.Status = PlayerStatusAllIn
 		}
 
 	case ActionAllIn:
-		state.CurrentBet = max(state.CurrentBet, player.CurrentBet+player.Stack)
-		player.CurrentBet += player.Stack
-		player.Stack = 0
-		player.Status = PlayerStatusAllIn
 	}
 }
 
@@ -133,4 +159,3 @@ func mergePots(existing, newPots []Pot) []Pot {
 	existing[len(existing)-1].Amount += newPots[0].Amount
 	return append(existing, newPots[1:]...)
 }
-

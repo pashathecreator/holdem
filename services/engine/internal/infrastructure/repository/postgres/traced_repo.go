@@ -26,6 +26,9 @@ func (r *TracedGameStateRepo) Save(ctx context.Context, state *domain.GameState)
 		attribute.String("hand_id", string(state.ID)),
 		attribute.String("table_id", string(state.TableID)),
 		attribute.String("street", streetToString(state.Street)),
+		attribute.Int("current_bet", state.CurrentBet),
+		attribute.Int("raises_this_street", state.RaisesThisStreet),
+		attribute.String("betting_structure", bettingStructureToString(state.Structure)),
 	)
 
 	if err := r.repo.Save(ctx, state); err != nil {

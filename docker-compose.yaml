@@ -22,6 +22,8 @@ services:
       timeout: 5s
       retries: 5
 
+    
+
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     ports:
@@ -48,6 +50,28 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+
+  kafka-init:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - kafka
+    networks:
+      - holdem
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "
+      echo 'Waiting for Kafka...';
+
+      cub kafka-ready -b kafka:9092 1 60;
+
+      echo 'Creating Kafka topics...';
+
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.started --partitions 1 --replication-factor 1;
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic player.acted --partitions 1 --replication-factor 1;
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.ended --partitions 1 --replication-factor 1;
+
+      echo 'Kafka topics created.';
+      "
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.6.0
@@ -111,7 +135,7 @@ services:
     ports:
       - "8082:8080"
     environment:
-      SWAGGER_JSON: /docs/engine.swagger.json
+      SWAGGER_JSON: /docs/engine/v1/engine.swagger.json
     volumes:
       - ./services/engine/docs:/docs
     networks:

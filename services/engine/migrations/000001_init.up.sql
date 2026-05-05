@@ -1,14 +1,21 @@
 CREATE TABLE game_states (
-    id            TEXT PRIMARY KEY,
-    table_id      TEXT NOT NULL,
-    street        TEXT NOT NULL,
-    current_bet   BIGINT NOT NULL DEFAULT 0,
-    active_player INT NOT NULL DEFAULT 0,
-    button        INT NOT NULL DEFAULT 0,
-    small_blind   BIGINT NOT NULL,
-    big_blind     BIGINT NOT NULL,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                      TEXT PRIMARY KEY,
+    table_id                TEXT NOT NULL,
+    street                  TEXT NOT NULL,
+    current_bet             BIGINT NOT NULL DEFAULT 0,
+    active_player           INT NOT NULL DEFAULT 0,
+    button                  INT NOT NULL DEFAULT 0,
+
+    betting_structure       TEXT NOT NULL DEFAULT 'fixed_limit',
+    small_blind             BIGINT NOT NULL,
+    big_blind               BIGINT NOT NULL,
+    small_bet               BIGINT NOT NULL,
+    big_bet                 BIGINT NOT NULL,
+    max_raises_per_street   INT NOT NULL DEFAULT 4,
+    raises_this_street      INT NOT NULL DEFAULT 0,
+
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE game_players (
