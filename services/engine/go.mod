@@ -8,7 +8,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/joho/godotenv v1.5.1
 	github.com/linkedin/goavro/v2 v2.15.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/riferrei/srclient v0.7.4

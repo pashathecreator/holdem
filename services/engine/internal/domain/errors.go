@@ -19,4 +19,6 @@ var (
 	ErrHandAlreadyStarted = errors.New("hand already started")
 	ErrHandNotStarted     = errors.New("hand not started")
 	ErrNotEnoughPlayers   = errors.New("not enough players to start hand")
+
+	ErrRaiseCapReached = errors.New("raise cap reached")
 )

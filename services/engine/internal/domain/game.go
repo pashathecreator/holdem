@@ -20,9 +20,22 @@ type GameState struct {
 	CurrentBet   int
 	ActivePlayer int
 	Button       int
-	SmallBlind   int
-	BigBlind     int
-	Deck         *Deck
+
+	BettingConfig
+	RaisesThisStreet int
+
+	Deck *Deck
+}
+
+func (g *GameState) BetSizeForStreet() int {
+	switch g.Street {
+	case StreetPreflop, StreetFlop:
+		return g.SmallBet
+	case StreetTurn, StreetRiver:
+		return g.BigBet
+	default:
+		return 0
+	}
 }
 
 func (g *GameState) ActivePlayers() []*Player {

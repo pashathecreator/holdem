@@ -18,11 +18,11 @@ type startHandEventPublisher interface {
 }
 
 type StartHandInput struct {
-	TableID    domain.TableID
-	Players    []*domain.Player
-	Button     int
-	SmallBlind int
-	BigBlind   int
+	TableID domain.TableID
+	Players []*domain.Player
+	Button  int
+
+	domain.BettingConfig
 }
 
 type StartHand struct {
@@ -47,26 +47,25 @@ func (uc *StartHand) Execute(ctx context.Context, input StartHandInput) (*domain
 		return nil, err
 	}
 
-	sbIndex := (input.Button + 1) % len(input.Players)
-	bbIndex := (input.Button + 2) % len(input.Players)
+	sbIndex, bbIndex := blindIndexes(input.Button, len(input.Players))
 
 	if err := postBlinds(input.Players, sbIndex, bbIndex, input.SmallBlind, input.BigBlind); err != nil {
 		return nil, err
 	}
 
 	state := &domain.GameState{
-		ID:           domain.HandID(fmt.Sprintf("%d", time.Now().UnixNano())),
-		TableID:      input.TableID,
-		Players:      input.Players,
-		Board:        make([]domain.Card, 0, 5),
-		Pots:         []domain.Pot{},
-		Street:       domain.StreetPreflop,
-		CurrentBet:   input.BigBlind,
-		ActivePlayer: nextActiveIndex(bbIndex, input.Players),
-		Button:       input.Button,
-		SmallBlind:   input.SmallBlind,
-		BigBlind:     input.BigBlind,
-		Deck:         deck,
+		ID:               domain.HandID(fmt.Sprintf("%d", time.Now().UnixNano())),
+		TableID:          input.TableID,
+		Players:          input.Players,
+		Board:            make([]domain.Card, 0, 5),
+		Pots:             []domain.Pot{},
+		Street:           domain.StreetPreflop,
+		CurrentBet:       input.BigBlind,
+		ActivePlayer:     nextActiveIndex(bbIndex, input.Players),
+		Button:           input.Button,
+		BettingConfig:    input.BettingConfig,
+		RaisesThisStreet: 0,
+		Deck:             deck,
 	}
 
 	if err := uc.repo.Save(ctx, state); err != nil {
@@ -101,15 +100,39 @@ func validateStartHandInput(input StartHandInput) error {
 	if len(input.Players) < 2 {
 		return domain.ErrNotEnoughPlayers
 	}
+
+	if input.Structure != domain.BettingFixedLimit {
+		return fmt.Errorf("unsupported betting structure")
+	}
+
 	if input.SmallBlind <= 0 || input.BigBlind <= 0 {
 		return fmt.Errorf("blinds must be positive")
 	}
+
+	if input.SmallBet <= 0 || input.BigBet <= 0 {
+		return fmt.Errorf("bet sizes must be positive")
+	}
+
 	if input.BigBlind != input.SmallBlind*2 {
 		return fmt.Errorf("big blind must be twice the small blind")
 	}
+
+	if input.SmallBet < input.BigBlind {
+		return fmt.Errorf("small bet must be greater than or equal to big blind")
+	}
+
+	if input.BigBet < input.SmallBet {
+		return fmt.Errorf("big bet must be greater than or equal to small bet")
+	}
+
+	if input.MaxRaisesPerStreet <= 0 {
+		return fmt.Errorf("max raises per street must be positive")
+	}
+
 	if input.Button < 0 || input.Button >= len(input.Players) {
 		return fmt.Errorf("invalid button position")
 	}
+
 	return nil
 }
 
@@ -119,9 +142,12 @@ func dealHoleCards(deck *domain.Deck, players []*domain.Player) error {
 		if err != nil {
 			return fmt.Errorf("deal hole cards: %w", err)
 		}
+
 		p.HoleCards = [2]domain.Card{cards[0], cards[1]}
 		p.Status = domain.PlayerStatusActive
+		p.CurrentBet = 0
 	}
+
 	return nil
 }
 
@@ -152,4 +178,12 @@ func nextActiveIndex(bbIndex int, players []*domain.Player) int {
 		}
 	}
 	return bbIndex
+}
+
+func blindIndexes(button int, playersCount int) (sbIndex int, bbIndex int) {
+	if playersCount == 2 {
+		return button, (button + 1) % playersCount
+	}
+
+	return (button + 1) % playersCount, (button + 2) % playersCount
 }
