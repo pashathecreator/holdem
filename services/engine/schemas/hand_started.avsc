@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "HandStarted",
+  "namespace": "holdem.engine.v1",
+  "fields": [
+    {"name": "hand_id",     "type": "string"},
+    {"name": "table_id",    "type": "string"},
+    {"name": "players",     "type": {"type": "array", "items": "string"}},
+    {"name": "button",      "type": "int"},
+    {"name": "small_blind", "type": "long"},
+    {"name": "big_blind",   "type": "long"},
+    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
+  ]
+}

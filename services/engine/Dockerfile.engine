@@ -1,0 +1,21 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o bin/engine ./cmd/server/...
+RUN go install github.com/grpc-ecosystem/grpc-health-probe@v0.4.34
+
+FROM alpine:3.19
+
+WORKDIR /app
+
+COPY --from=builder /go/bin/grpc-health-probe /usr/local/bin/grpc_health_probe
+COPY --from=builder /app/bin/engine ./bin/engine
+
+EXPOSE 9090 8080 9091
+
+CMD ["./bin/engine"]

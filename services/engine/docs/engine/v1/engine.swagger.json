@@ -1,0 +1,422 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Holdem Engine API",
+    "description": "Texas Hold'em game engine API",
+    "version": "1.0"
+  },
+  "tags": [
+    {
+      "name": "GameEngine"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/game/start": {
+      "post": {
+        "summary": "Start a new hand",
+        "operationId": "GameEngine_StartHand",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1StartHandResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1StartHandRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/v1/game/{handId}": {
+      "get": {
+        "summary": "Get current game state",
+        "operationId": "GameEngine_GetGameState",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetGameStateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "handId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/v1/game/{handId}/action": {
+      "post": {
+        "summary": "Apply player action",
+        "operationId": "GameEngine_ApplyAction",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ApplyActionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "handId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GameEngineApplyActionBody"
+            }
+          }
+        ],
+        "tags": [
+          "Game"
+        ]
+      }
+    },
+    "/v1/game/{handId}/stream": {
+      "get": {
+        "summary": "Stream game state updates",
+        "operationId": "GameEngine_StreamGameState",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1StreamGameStateResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1StreamGameStateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "handId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Game"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "GameEngineApplyActionBody": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/definitions/v1Action"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1Action": {
+      "type": "object",
+      "properties": {
+        "playerId": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/v1ActionType"
+        },
+        "amount": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1ActionType": {
+      "type": "string",
+      "enum": [
+        "ACTION_TYPE_UNSPECIFIED",
+        "ACTION_TYPE_FOLD",
+        "ACTION_TYPE_CHECK",
+        "ACTION_TYPE_CALL",
+        "ACTION_TYPE_RAISE",
+        "ACTION_TYPE_ALL_IN"
+      ],
+      "default": "ACTION_TYPE_UNSPECIFIED"
+    },
+    "v1ApplyActionResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/v1GameState"
+        }
+      }
+    },
+    "v1Card": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GameState": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tableId": {
+          "type": "string"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Player"
+          }
+        },
+        "board": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Card"
+          }
+        },
+        "pots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Pot"
+          }
+        },
+        "street": {
+          "$ref": "#/definitions/v1Street"
+        },
+        "currentBet": {
+          "type": "string",
+          "format": "int64"
+        },
+        "activePlayer": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "button": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "smallBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "bigBlind": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1GetGameStateResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/v1GameState"
+        }
+      }
+    },
+    "v1Player": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stack": {
+          "type": "string",
+          "format": "int64"
+        },
+        "holeCards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Card"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/v1PlayerStatus"
+        },
+        "currentBet": {
+          "type": "string",
+          "format": "int64"
+        },
+        "position": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1PlayerStatus": {
+      "type": "string",
+      "enum": [
+        "PLAYER_STATUS_UNSPECIFIED",
+        "PLAYER_STATUS_ACTIVE",
+        "PLAYER_STATUS_FOLDED",
+        "PLAYER_STATUS_ALL_IN",
+        "PLAYER_STATUS_SITTING_OUT"
+      ],
+      "default": "PLAYER_STATUS_UNSPECIFIED"
+    },
+    "v1Pot": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string",
+          "format": "int64"
+        },
+        "eligible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1StartHandRequest": {
+      "type": "object",
+      "properties": {
+        "tableId": {
+          "type": "string"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Player"
+          }
+        },
+        "button": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "smallBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "bigBlind": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1StartHandResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/v1GameState"
+        }
+      }
+    },
+    "v1StreamGameStateResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/definitions/v1GameState"
+        }
+      }
+    },
+    "v1Street": {
+      "type": "string",
+      "enum": [
+        "STREET_UNSPECIFIED",
+        "STREET_PREFLOP",
+        "STREET_FLOP",
+        "STREET_TURN",
+        "STREET_RIVER",
+        "STREET_SHOWDOWN"
+      ],
+      "default": "STREET_UNSPECIFIED"
+    }
+  }
+}

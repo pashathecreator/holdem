@@ -1,0 +1,30 @@
+grpc:
+  addr: ":9090"
+
+http:
+  addr: ":8080"
+
+rake:
+  percent: 0.05
+  cap: 150
+  no_flop_no_drop: true
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  schema_registry_url: "http://schema-registry:8081"
+
+postgres:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  dbname: "holdem"
+  max_conns: 10
+  min_conns: 2
+  max_conn_idle_time: "30m"
+
+metrics:
+  addr: ":9091"
+
+telemetry:
+  otlp_endpoint: "jaeger:4317"

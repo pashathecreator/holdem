@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "PlayerActed",
+  "namespace": "holdem.engine.v1",
+  "fields": [
+    {"name": "hand_id",     "type": "string"},
+    {"name": "table_id",    "type": "string"},
+    {"name": "player_id",   "type": "string"},
+    {"name": "action_type", "type": {
+      "type": "enum",
+      "name": "ActionType",
+      "symbols": ["FOLD", "CHECK", "CALL", "RAISE", "ALL_IN"]
+    }},
+    {"name": "amount",      "type": "long"},
+    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
+  ]
+}

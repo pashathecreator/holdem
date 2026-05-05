@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "HandEnded",
+  "namespace": "holdem.engine.v1",
+  "fields": [
+    {"name": "hand_id",     "type": "string"},
+    {"name": "table_id",    "type": "string"},
+    {"name": "winners",     "type": {
+      "type": "array",
+      "items": {
+        "type": "record",
+        "name": "Winner",
+        "fields": [
+          {"name": "player_id", "type": "string"},
+          {"name": "amount",    "type": "long"}
+        ]
+      }
+    }},
+    {"name": "rake",        "type": "long"},
+    {"name": "board",       "type": {"type": "array", "items": "string"}},
+    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
+  ]
+}
