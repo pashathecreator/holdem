@@ -24,6 +24,7 @@ func upsertGameState(ctx context.Context, tx pgx.Tx, state *domain.GameState) er
 			"current_bet",
 			"active_player",
 			"button",
+			"event_sequence",
 			"betting_structure",
 			"small_blind",
 			"big_blind",
@@ -40,6 +41,7 @@ func upsertGameState(ctx context.Context, tx pgx.Tx, state *domain.GameState) er
 			state.CurrentBet,
 			state.ActivePlayer,
 			state.Button,
+			state.EventSequence,
 			bettingStructureToString(state.Structure),
 			state.SmallBlind,
 			state.BigBlind,
@@ -54,6 +56,7 @@ func upsertGameState(ctx context.Context, tx pgx.Tx, state *domain.GameState) er
 			current_bet = EXCLUDED.current_bet,
 			active_player = EXCLUDED.active_player,
 			button = EXCLUDED.button,
+			event_sequence = EXCLUDED.event_sequence,
 			betting_structure = EXCLUDED.betting_structure,
 			small_blind = EXCLUDED.small_blind,
 			big_blind = EXCLUDED.big_blind,
@@ -83,6 +86,7 @@ func findGameState(ctx context.Context, pool *pgxpool.Pool, id domain.HandID) (*
 			"current_bet",
 			"active_player",
 			"button",
+			"event_sequence",
 			"betting_structure",
 			"small_blind",
 			"big_blind",
@@ -105,6 +109,7 @@ func findGameState(ctx context.Context, pool *pgxpool.Pool, id domain.HandID) (*
 		currentBet         int
 		activePlayer       int
 		button             int
+		eventSequence      int
 		bettingStructure   string
 		smallBlind         int
 		bigBlind           int
@@ -122,6 +127,7 @@ func findGameState(ctx context.Context, pool *pgxpool.Pool, id domain.HandID) (*
 		&currentBet,
 		&activePlayer,
 		&button,
+		&eventSequence,
 		&bettingStructure,
 		&smallBlind,
 		&bigBlind,
@@ -137,12 +143,13 @@ func findGameState(ctx context.Context, pool *pgxpool.Pool, id domain.HandID) (*
 	}
 
 	return &domain.GameState{
-		ID:           domain.HandID(handID),
-		TableID:      domain.TableID(tableID),
-		Street:       streetFromString(street),
-		CurrentBet:   currentBet,
-		ActivePlayer: activePlayer,
-		Button:       button,
+		ID:            domain.HandID(handID),
+		TableID:       domain.TableID(tableID),
+		Street:        streetFromString(street),
+		CurrentBet:    currentBet,
+		ActivePlayer:  activePlayer,
+		Button:        button,
+		EventSequence: eventSequence,
 		BettingConfig: domain.BettingConfig{
 			Structure:          bettingStructureFromString(bettingStructure),
 			SmallBlind:         smallBlind,

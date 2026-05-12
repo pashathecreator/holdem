@@ -40,6 +40,8 @@ func (uc *StartHand) Execute(ctx context.Context, input StartHandInput) (*domain
 		return nil, err
 	}
 
+	occurredAt := time.Now()
+
 	deck := domain.NewDeck(uc.shuffle)
 	deck.Shuffle()
 
@@ -63,6 +65,7 @@ func (uc *StartHand) Execute(ctx context.Context, input StartHandInput) (*domain
 		CurrentBet:       input.BigBlind,
 		ActivePlayer:     nextActiveIndex(bbIndex, input.Players),
 		Button:           input.Button,
+		EventSequence:    1,
 		BettingConfig:    input.BettingConfig,
 		RaisesThisStreet: 0,
 		Deck:             deck,
@@ -78,13 +81,18 @@ func (uc *StartHand) Execute(ctx context.Context, input StartHandInput) (*domain
 	}
 
 	if err := uc.publisher.PublishHandStarted(ctx, domain.HandStartedEvent{
-		HandID:     state.ID,
-		TableID:    state.TableID,
-		Players:    playerIDs,
-		Button:     input.Button,
-		SmallBlind: input.SmallBlind,
-		BigBlind:   input.BigBlind,
-		OccurredAt: time.Now(),
+		EventID:          fmt.Sprintf("%s:%d", state.ID, state.EventSequence),
+		EventVersion:     1,
+		HandID:           state.ID,
+		TableID:          state.TableID,
+		SequenceNumber:   state.EventSequence,
+		Players:          playerIDs,
+		PlayerCount:      len(input.Players),
+		Button:           input.Button,
+		BettingStructure: input.Structure.EventValue(),
+		SmallBlind:       input.SmallBlind,
+		BigBlind:         input.BigBlind,
+		OccurredAt:       occurredAt,
 	}); err != nil {
 		return nil, fmt.Errorf("start hand: publish event: %w", err)
 	}

@@ -2,7 +2,6 @@ package domain
 
 import "errors"
 
-
 type ShuffleFunc func([]Card) []Card
 
 type Deck struct {
@@ -18,6 +17,12 @@ func NewDeck(shuffle ShuffleFunc) *Deck {
 		}
 	}
 	return &Deck{cards: cards, shuffle: shuffle}
+}
+
+func NewDeckFromCards(cards []Card) *Deck {
+	deckCards := make([]Card, len(cards))
+	copy(deckCards, cards)
+	return &Deck{cards: deckCards}
 }
 
 func (d *Deck) Shuffle() {
@@ -42,4 +47,10 @@ func (d *Deck) Deal(n int) ([]Card, error) {
 
 func (d *Deck) Remaining() int {
 	return len(d.cards)
+}
+
+func (d *Deck) Cards() []Card {
+	cards := make([]Card, len(d.cards))
+	copy(cards, d.cards)
+	return cards
 }

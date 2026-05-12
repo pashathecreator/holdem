@@ -33,6 +33,9 @@ func (r *GameStateRepo) Save(ctx context.Context, state *domain.GameState) error
 	if err := replaceBoard(ctx, tx, state); err != nil {
 		return err
 	}
+	if err := replaceDeck(ctx, tx, state); err != nil {
+		return err
+	}
 	if err := replacePots(ctx, tx, state); err != nil {
 		return err
 	}
@@ -56,6 +59,11 @@ func (r *GameStateRepo) FindByID(ctx context.Context, id domain.HandID) (*domain
 	}
 
 	state.Board, err = loadBoard(ctx, r.pool, id)
+	if err != nil {
+		return nil, err
+	}
+
+	state.Deck, err = loadDeck(ctx, r.pool, id)
 	if err != nil {
 		return nil, err
 	}

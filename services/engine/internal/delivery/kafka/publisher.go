@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/linkedin/goavro/v2"
@@ -12,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 
+	"github.com/pashathecreator/holdem/services/engine/internal/delivery/kafka/avroschema"
 	"github.com/pashathecreator/holdem/services/engine/internal/domain"
 	"github.com/pashathecreator/holdem/services/engine/internal/metrics"
 	"github.com/pashathecreator/holdem/services/engine/internal/telemetry"
@@ -54,11 +56,7 @@ func NewPublisher(brokers []string, schemaRegistryURL string) (*Publisher, error
 }
 
 func (p *Publisher) registerSchemas() error {
-	schemas := map[string]string{
-		topicHandStarted: handStartedSchema,
-		topicPlayerActed: playerActedSchema,
-		topicHandEnded:   handEndedSchema,
-	}
+	schemas := publisherSchemas()
 
 	for topic, schema := range schemas {
 		subject := topic + "-value"
@@ -90,13 +88,18 @@ func (p *Publisher) PublishHandStarted(ctx context.Context, event domain.HandSta
 	}
 
 	payload := map[string]interface{}{
-		"hand_id":     string(event.HandID),
-		"table_id":    string(event.TableID),
-		"players":     players,
-		"button":      event.Button,
-		"small_blind": int64(event.SmallBlind),
-		"big_blind":   int64(event.BigBlind),
-		"occurred_at": event.OccurredAt.UnixMilli(),
+		"event_id":          event.EventID,
+		"event_version":     event.EventVersion,
+		"hand_id":           string(event.HandID),
+		"table_id":          string(event.TableID),
+		"sequence_number":   event.SequenceNumber,
+		"players":           players,
+		"player_count":      event.PlayerCount,
+		"button":            event.Button,
+		"betting_structure": event.BettingStructure,
+		"small_blind":       int64(event.SmallBlind),
+		"big_blind":         int64(event.BigBlind),
+		"occurred_at":       event.OccurredAt.UnixMilli(),
 	}
 
 	return p.publish(ctx, topicHandStarted, string(event.HandID), payload)
@@ -107,12 +110,19 @@ func (p *Publisher) PublishPlayerActed(ctx context.Context, event domain.PlayerA
 	defer span.End()
 
 	payload := map[string]interface{}{
-		"hand_id":     string(event.HandID),
-		"table_id":    string(event.TableID),
-		"player_id":   string(event.PlayerID),
-		"action_type": event.Action.Type.String(),
-		"amount":      int64(event.Action.Amount),
-		"occurred_at": event.OccurredAt.UnixMilli(),
+		"event_id":           event.EventID,
+		"event_version":      event.EventVersion,
+		"hand_id":            string(event.HandID),
+		"table_id":           string(event.TableID),
+		"sequence_number":    event.SequenceNumber,
+		"player_id":          string(event.PlayerID),
+		"street":             event.Street,
+		"player_position":    event.PlayerPosition,
+		"action_type":        avroActionType(event.Action.Type),
+		"current_bet":        int64(event.CurrentBet),
+		"player_current_bet": int64(event.PlayerCurrentBet),
+		"amount":             int64(event.Action.Amount),
+		"occurred_at":        event.OccurredAt.UnixMilli(),
 	}
 
 	return p.publish(ctx, topicPlayerActed, string(event.HandID), payload)
@@ -122,11 +132,17 @@ func (p *Publisher) PublishHandEnded(ctx context.Context, event domain.HandEnded
 	ctx, span := telemetry.Tracer().Start(ctx, "kafka.PublishHandEnded")
 	defer span.End()
 
+	winnerIDs := make([]string, 0, len(event.Winners))
+	for playerID := range event.Winners {
+		winnerIDs = append(winnerIDs, string(playerID))
+	}
+	slices.Sort(winnerIDs)
+
 	winners := make([]interface{}, 0, len(event.Winners))
-	for playerID, amount := range event.Winners {
+	for _, playerID := range winnerIDs {
 		winners = append(winners, map[string]interface{}{
-			"player_id": string(playerID),
-			"amount":    int64(amount),
+			"player_id": playerID,
+			"amount":    int64(event.Winners[domain.PlayerID(playerID)]),
 		})
 	}
 
@@ -136,12 +152,22 @@ func (p *Publisher) PublishHandEnded(ctx context.Context, event domain.HandEnded
 	}
 
 	payload := map[string]interface{}{
-		"hand_id":     string(event.HandID),
-		"table_id":    string(event.TableID),
-		"winners":     winners,
-		"rake":        int64(event.Rake),
-		"board":       board,
-		"occurred_at": event.OccurredAt.UnixMilli(),
+		"event_id":        event.EventID,
+		"event_version":   event.EventVersion,
+		"hand_id":         string(event.HandID),
+		"table_id":        string(event.TableID),
+		"sequence_number": event.SequenceNumber,
+		"player_count":    event.PlayerCount,
+		"button":          event.Button,
+		"small_blind":     int64(event.SmallBlind),
+		"big_blind":       int64(event.BigBlind),
+		"showdown":        event.Showdown,
+		"gross_pot":       int64(event.GrossPot),
+		"net_pot":         int64(event.NetPot),
+		"winners":         winners,
+		"rake":            int64(event.Rake),
+		"board":           board,
+		"occurred_at":     event.OccurredAt.UnixMilli(),
 	}
 
 	return p.publish(ctx, topicHandEnded, string(event.HandID), payload)
@@ -206,59 +232,27 @@ func (p *Publisher) Close() error {
 	return p.writer.Close()
 }
 
-const handStartedSchema = `{
-  "type": "record",
-  "name": "HandStarted",
-  "namespace": "holdem.engine.v1",
-  "fields": [
-    {"name": "hand_id",     "type": "string"},
-    {"name": "table_id",    "type": "string"},
-    {"name": "players",     "type": {"type": "array", "items": "string"}},
-    {"name": "button",      "type": "int"},
-    {"name": "small_blind", "type": "long"},
-    {"name": "big_blind",   "type": "long"},
-    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
-  ]
-}`
+func publisherSchemas() map[string]string {
+	return map[string]string{
+		topicHandStarted: avroschema.HandStarted(),
+		topicPlayerActed: avroschema.PlayerActed(),
+		topicHandEnded:   avroschema.HandEnded(),
+	}
+}
 
-const playerActedSchema = `{
-  "type": "record",
-  "name": "PlayerActed",
-  "namespace": "holdem.engine.v1",
-  "fields": [
-    {"name": "hand_id",     "type": "string"},
-    {"name": "table_id",    "type": "string"},
-    {"name": "player_id",   "type": "string"},
-    {"name": "action_type", "type": {
-      "type": "enum",
-      "name": "ActionType",
-      "symbols": ["FOLD", "CHECK", "CALL", "RAISE", "ALL_IN"]
-    }},
-    {"name": "amount",      "type": "long"},
-    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
-  ]
-}`
-
-const handEndedSchema = `{
-  "type": "record",
-  "name": "HandEnded",
-  "namespace": "holdem.engine.v1",
-  "fields": [
-    {"name": "hand_id",   "type": "string"},
-    {"name": "table_id",  "type": "string"},
-    {"name": "winners",   "type": {
-      "type": "array",
-      "items": {
-        "type": "record",
-        "name": "Winner",
-        "fields": [
-          {"name": "player_id", "type": "string"},
-          {"name": "amount",    "type": "long"}
-        ]
-      }
-    }},
-    {"name": "rake",        "type": "long"},
-    {"name": "board",       "type": {"type": "array", "items": "string"}},
-    {"name": "occurred_at", "type": "long", "logicalType": "timestamp-millis"}
-  ]
-}`
+func avroActionType(actionType domain.ActionType) string {
+	switch actionType {
+	case domain.ActionFold:
+		return "FOLD"
+	case domain.ActionCheck:
+		return "CHECK"
+	case domain.ActionCall:
+		return "CALL"
+	case domain.ActionRaise:
+		return "RAISE"
+	case domain.ActionAllIn:
+		return "ALL_IN"
+	default:
+		return "FOLD"
+	}
+}

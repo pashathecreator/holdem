@@ -46,12 +46,17 @@ func NewFinishHand(
 func (uc *FinishHand) Execute(ctx context.Context, state *domain.GameState) error {
 	domain.CollectBets(state)
 
+	occurredAt := time.Now()
+	showdown := state.Street == domain.StreetShowdown
+	grossPot := domain.Total(state.Pots)
 	rake := domain.CalculateRake(state.Pots, state.Street, uc.rakeConfig)
 	state.Pots = domain.ApplyRake(state.Pots, rake)
+	netPot := domain.Total(state.Pots)
+	sequenceNumber := state.AdvanceEventSequence()
 
 	winners := uc.determineWinners(state)
 
-	if state.Street == domain.StreetShowdown {
+	if showdown {
 		metrics.ShowdownsTotal.Inc()
 	}
 
@@ -59,7 +64,7 @@ func (uc *FinishHand) Execute(ctx context.Context, state *domain.GameState) erro
 
 	metrics.HandsEnded.Inc()
 	metrics.ActiveGames.Dec()
-	metrics.PotSize.Observe(float64(domain.Total(state.Pots)))
+	metrics.PotSize.Observe(float64(netPot))
 	metrics.RakeCollected.Add(float64(rake))
 
 	if err := uc.repo.Save(ctx, state); err != nil {
@@ -67,12 +72,22 @@ func (uc *FinishHand) Execute(ctx context.Context, state *domain.GameState) erro
 	}
 
 	if err := uc.publisher.PublishHandEnded(ctx, domain.HandEndedEvent{
-		HandID:     state.ID,
-		TableID:    state.TableID,
-		Winners:    winners,
-		Rake:       rake,
-		Board:      state.Board,
-		OccurredAt: time.Now(),
+		EventID:        fmt.Sprintf("%s:%d", state.ID, sequenceNumber),
+		EventVersion:   1,
+		HandID:         state.ID,
+		TableID:        state.TableID,
+		SequenceNumber: sequenceNumber,
+		PlayerCount:    len(state.Players),
+		Button:         state.Button,
+		SmallBlind:     state.SmallBlind,
+		BigBlind:       state.BigBlind,
+		Showdown:       showdown,
+		GrossPot:       grossPot,
+		NetPot:         netPot,
+		Winners:        winners,
+		Rake:           rake,
+		Board:          state.Board,
+		OccurredAt:     occurredAt,
 	}); err != nil {
 		return fmt.Errorf("finish hand: publish event: %w", err)
 	}
