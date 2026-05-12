@@ -51,16 +51,30 @@ func (uc *ApplyAction) Execute(ctx context.Context, input ApplyActionInput) (*do
 		return nil, fmt.Errorf("apply action: validate: %w", err)
 	}
 
+	actingPlayer := state.PlayerByID(input.Action.PlayerID)
+	if actingPlayer == nil {
+		return nil, fmt.Errorf("apply action: player not found: %w", domain.ErrPlayerNotFound)
+	}
+
+	occurredAt := time.Now()
 	domain.ApplyAction(state, input.Action)
+	sequenceNumber := state.AdvanceEventSequence()
 
 	metrics.ActionsTotal.WithLabelValues(input.Action.Type.String()).Inc()
 
 	if err := uc.publisher.PublishPlayerActed(ctx, domain.PlayerActedEvent{
-		HandID:     state.ID,
-		TableID:    state.TableID,
-		PlayerID:   input.Action.PlayerID,
-		Action:     input.Action,
-		OccurredAt: time.Now(),
+		EventID:          fmt.Sprintf("%s:%d", state.ID, sequenceNumber),
+		EventVersion:     1,
+		HandID:           state.ID,
+		TableID:          state.TableID,
+		SequenceNumber:   sequenceNumber,
+		PlayerID:         input.Action.PlayerID,
+		Street:           state.Street.EventValue(),
+		PlayerPosition:   actingPlayer.Position,
+		Action:           input.Action,
+		CurrentBet:       state.CurrentBet,
+		PlayerCurrentBet: actingPlayer.CurrentBet,
+		OccurredAt:       occurredAt,
 	}); err != nil {
 		return nil, fmt.Errorf("apply action: publish event: %w", err)
 	}

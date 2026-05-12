@@ -32,7 +32,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to create migrator: %v\n", err)
 		os.Exit(1)
 	}
-	defer m.Close()
+	defer func() {
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to close migrator source: %v\n", sourceErr)
+		}
+		if dbErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to close migrator database: %v\n", dbErr)
+		}
+	}()
 
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {

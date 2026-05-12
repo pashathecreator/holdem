@@ -67,7 +67,7 @@ services:
       echo 'Creating Kafka topics...';
 
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.started --partitions 1 --replication-factor 1;
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic player.acted --partitions 1 --replication-factor 1;
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.acted --partitions 1 --replication-factor 1;
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.ended --partitions 1 --replication-factor 1;
 
       echo 'Kafka topics created.';
@@ -91,6 +91,51 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.4
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./services/analytics-ingestor/db/init:/docker-entrypoint-initdb.d
+    networks:
+      - holdem
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  analytics-ingestor:
+    build:
+      context: ./services/analytics-ingestor
+      dockerfile: Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPICS: hand.started,hand.acted,hand.ended
+      KAFKA_CONSUMER_GROUP: analytics-ingestor-v1
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CLICKHOUSE_ADDR: clickhouse:9000
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_BATCH_SIZE: "500"
+      CLICKHOUSE_FLUSH_INTERVAL: 1s
+    networks:
+      - holdem
+    restart: unless-stopped
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -196,5 +241,6 @@ networks:
 volumes:
   postgres_data:
   kafka_data:
+  clickhouse_data:
   grafana_data:
   prometheus_data:

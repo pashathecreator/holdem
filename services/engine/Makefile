@@ -4,7 +4,7 @@ SWAGGER_OUT = docs
 GOOGLEAPIS = third_party/googleapis
 OPENAPI_INCLUDES = third_party/openapiv2
 
-.PHONY: proto swagger test lint build run down vdown
+.PHONY: proto swagger schemas-sync test integration lint build run down vdown
 
 proto:
 	mkdir -p $(PROTO_OUT)
@@ -25,6 +25,11 @@ proto:
 test:
 	go test ./... -v -race
 
-lint:
-	golangci-lint run ./...
+integration:
+	go test -tags=integration ./integration -v
 
+schemas-sync:
+	GOCACHE=/tmp/go-build go run ./cmd/schema-sync
+
+lint:
+	GOCACHE=/tmp/go-build GOLANGCI_LINT_CACHE=/tmp/golangci-lint golangci-lint run ./...

@@ -11,15 +11,16 @@ const (
 )
 
 type GameState struct {
-	ID           HandID
-	TableID      TableID
-	Players      []*Player
-	Board        []Card
-	Pots         []Pot
-	Street       Street
-	CurrentBet   int
-	ActivePlayer int
-	Button       int
+	ID            HandID
+	TableID       TableID
+	Players       []*Player
+	Board         []Card
+	Pots          []Pot
+	Street        Street
+	CurrentBet    int
+	ActivePlayer  int
+	Button        int
+	EventSequence int
 
 	BettingConfig
 	RaisesThisStreet int
@@ -69,4 +70,13 @@ func (g *GameState) PlayerByID(id PlayerID) *Player {
 
 func (g *GameState) IsHandOver() bool {
 	return len(g.PlayersWhoCanAct()) <= 1
+}
+
+func (g *GameState) NextEventSequence() int {
+	return g.EventSequence + 1
+}
+
+func (g *GameState) AdvanceEventSequence() int {
+	g.EventSequence++
+	return g.EventSequence
 }

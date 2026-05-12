@@ -34,7 +34,7 @@ type app struct {
 	cfg            *config.Config
 }
 
-func newApp(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*app, error) {
+func newApp(ctx context.Context, cfg *config.Config) (*app, error) {
 	_, tracerShutdown, err := telemetry.New(ctx, cfg.Telemetry.OTLPEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("app: init telemetry: %w", err)
@@ -123,7 +123,9 @@ func (a *app) shutdown(ctx context.Context, logger *zap.Logger) {
 	}
 
 	a.pool.Close()
-	a.publisher.Close()
+	if err := a.publisher.Close(); err != nil {
+		logger.Error("publisher shutdown failed", zap.Error(err))
+	}
 }
 
 func buildPool(ctx context.Context, cfg config.PostgresConfig) (*pgxpool.Pool, error) {

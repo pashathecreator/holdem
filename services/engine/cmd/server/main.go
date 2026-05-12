@@ -14,7 +14,9 @@ import (
 
 func main() {
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 
 	cfg, err := config.Load("config/config.yaml")
 	if err != nil {
@@ -24,7 +26,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	app, err := newApp(ctx, cfg, logger)
+	app, err := newApp(ctx, cfg)
 	if err != nil {
 		logger.Fatal("failed to init app", zap.Error(err))
 	}
