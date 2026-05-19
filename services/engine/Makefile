@@ -23,10 +23,13 @@ proto:
 		$(PROTO_SRC)
 
 test:
-	go test ./... -v -race
+	GOCACHE=/tmp/go-build go test ./... -v -race
+
+build:
+	GOCACHE=/tmp/go-build go build ./cmd/server/...
 
 integration:
-	go test -tags=integration ./integration -v
+	GOCACHE=/tmp/go-build go test -tags=integration ./integration -v
 
 schemas-sync:
 	GOCACHE=/tmp/go-build go run ./cmd/schema-sync
