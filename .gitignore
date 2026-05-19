@@ -1,2 +1,4 @@
 .env
 services/engine/third_party
+
+services/auth-service/config/jwt_private.pem
