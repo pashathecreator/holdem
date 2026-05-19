@@ -1,0 +1,31 @@
+http:
+  addr: ":8380"
+metrics:
+  addr: ":9391"
+postgres:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  dbname: "holdem"
+  max_conns: 10
+  min_conns: 2
+  max_conn_idle_time: "30m"
+auth:
+  issuer: "holdem-auth"
+  jwks_url: "http://auth-service:8280/.well-known/jwks.json"
+internal:
+  token: "wallet-internal-dev-token"
+kafka:
+  brokers: ["kafka:9092"]
+  user_created_topic: "user.created"
+  consumer_group: "wallet-service-v1"
+chain:
+  enabled: false
+  network: "sepolia"
+  rpc_url: ""
+  confirmations: 3
+  start_block: 0
+  scan_interval: "15s"
+  receipt_poll_interval: "15s"
+  hot_wallet_address: ""
+  hot_wallet_private_key: ""
