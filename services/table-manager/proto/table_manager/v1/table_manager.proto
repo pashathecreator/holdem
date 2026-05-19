@@ -1,0 +1,201 @@
+syntax = "proto3";
+
+package table_manager.v1;
+
+option go_package = "github.com/pashathecreator/holdem/services/table-manager/pkg/gen/go/table_manager/v1;tablemanagerv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Holdem Table Manager API"
+    version: "1.0"
+    description: "Cash table and gameplay facade API"
+  }
+  schemes: HTTP
+  consumes: "application/json"
+  produces: "application/json"
+};
+
+enum TableStatus {
+  TABLE_STATUS_UNSPECIFIED = 0;
+  TABLE_STATUS_IDLE = 1;
+  TABLE_STATUS_IN_HAND = 2;
+}
+
+enum SeatStatus {
+  SEAT_STATUS_UNSPECIFIED = 0;
+  SEAT_STATUS_EMPTY = 1;
+  SEAT_STATUS_OCCUPIED = 2;
+}
+
+enum PlayerStatus {
+  PLAYER_STATUS_UNSPECIFIED = 0;
+  PLAYER_STATUS_ACTIVE = 1;
+  PLAYER_STATUS_FOLDED = 2;
+  PLAYER_STATUS_ALL_IN = 3;
+  PLAYER_STATUS_SITTING_OUT = 4;
+}
+
+enum Street {
+  STREET_UNSPECIFIED = 0;
+  STREET_PREFLOP = 1;
+  STREET_FLOP = 2;
+  STREET_TURN = 3;
+  STREET_RIVER = 4;
+  STREET_SHOWDOWN = 5;
+}
+
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  ACTION_TYPE_FOLD = 1;
+  ACTION_TYPE_CHECK = 2;
+  ACTION_TYPE_CALL = 3;
+  ACTION_TYPE_RAISE = 4;
+  ACTION_TYPE_ALL_IN = 5;
+}
+
+message Card {
+  string value = 1;
+}
+
+message Pot {
+  int64 amount = 1;
+  repeated string eligible = 2;
+}
+
+message Action {
+  ActionType type = 1;
+  int64 amount = 2;
+}
+
+message SeatView {
+  int32 seat_index = 1;
+  SeatStatus status = 2;
+  string player_id = 3;
+  int64 stack = 4;
+  PlayerStatus player_status = 5;
+  int64 current_bet = 6;
+  repeated Card hole_cards = 7;
+  bool is_viewer = 8;
+}
+
+message HandView {
+  string hand_id = 1;
+  repeated Card board = 2;
+  repeated Pot pots = 3;
+  Street street = 4;
+  int64 current_bet = 5;
+  int32 active_player = 6;
+  int32 button = 7;
+  int64 small_blind = 8;
+  int64 big_blind = 9;
+}
+
+message TableView {
+  string table_id = 1;
+  string name = 2;
+  TableStatus status = 3;
+  int32 seat_count = 4;
+  int64 small_blind = 5;
+  int64 big_blind = 6;
+  int32 button = 7;
+  string active_hand_id = 8;
+  repeated SeatView seats = 9;
+  HandView hand = 10;
+}
+
+message CreateTableRequest {
+  string name = 1;
+  int32 seat_count = 2;
+  int64 small_blind = 3;
+  int64 big_blind = 4;
+}
+
+message CreateTableResponse {
+  TableView table = 1;
+}
+
+message ListTablesRequest {}
+
+message ListTablesResponse {
+  repeated TableView tables = 1;
+}
+
+message GetTableRequest {
+  string table_id = 1;
+}
+
+message GetTableResponse {
+  TableView table = 1;
+}
+
+message JoinTableRequest {
+  string table_id = 1;
+  int32 seat_index = 2;
+  int64 buy_in = 3;
+}
+
+message JoinTableResponse {
+  TableView table = 1;
+}
+
+message LeaveTableRequest {
+  string table_id = 1;
+}
+
+message LeaveTableResponse {
+  TableView table = 1;
+}
+
+message ActRequest {
+  string table_id = 1;
+  Action action = 2;
+}
+
+message ActResponse {
+  TableView table = 1;
+}
+
+service TableManager {
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {
+    option (google.api.http) = {
+      post: "/v1/tables"
+      body: "*"
+    };
+  }
+
+  rpc ListTables(ListTablesRequest) returns (ListTablesResponse) {
+    option (google.api.http) = {
+      get: "/v1/tables"
+    };
+  }
+
+  rpc GetTable(GetTableRequest) returns (GetTableResponse) {
+    option (google.api.http) = {
+      get: "/v1/tables/{table_id}"
+    };
+  }
+
+  rpc JoinTable(JoinTableRequest) returns (JoinTableResponse) {
+    option (google.api.http) = {
+      post: "/v1/tables/{table_id}/join"
+      body: "*"
+    };
+  }
+
+  rpc LeaveTable(LeaveTableRequest) returns (LeaveTableResponse) {
+    option (google.api.http) = {
+      post: "/v1/tables/{table_id}/leave"
+      body: "*"
+    };
+  }
+
+  rpc Act(ActRequest) returns (ActResponse) {
+    option (google.api.http) = {
+      post: "/v1/tables/{table_id}/act"
+      body: "*"
+    };
+  }
+}
