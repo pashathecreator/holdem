@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS table_seats;
+DROP TABLE IF EXISTS tables;

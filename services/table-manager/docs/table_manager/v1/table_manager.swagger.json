@@ -1,0 +1,558 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Holdem Table Manager API",
+    "description": "Cash table and gameplay facade API",
+    "version": "1.0"
+  },
+  "tags": [
+    {
+      "name": "TableManager"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/tables": {
+      "get": {
+        "operationId": "TableManager_ListTables",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListTablesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TableManager"
+        ]
+      },
+      "post": {
+        "operationId": "TableManager_CreateTable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateTableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateTableRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TableManager"
+        ]
+      }
+    },
+    "/v1/tables/{tableId}": {
+      "get": {
+        "operationId": "TableManager_GetTable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetTableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TableManager"
+        ]
+      }
+    },
+    "/v1/tables/{tableId}/act": {
+      "post": {
+        "operationId": "TableManager_Act",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ActResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TableManagerActBody"
+            }
+          }
+        ],
+        "tags": [
+          "TableManager"
+        ]
+      }
+    },
+    "/v1/tables/{tableId}/join": {
+      "post": {
+        "operationId": "TableManager_JoinTable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1JoinTableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TableManagerJoinTableBody"
+            }
+          }
+        ],
+        "tags": [
+          "TableManager"
+        ]
+      }
+    },
+    "/v1/tables/{tableId}/leave": {
+      "post": {
+        "operationId": "TableManager_LeaveTable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LeaveTableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TableManagerLeaveTableBody"
+            }
+          }
+        ],
+        "tags": [
+          "TableManager"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TableManagerActBody": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/definitions/v1Action"
+        }
+      }
+    },
+    "TableManagerJoinTableBody": {
+      "type": "object",
+      "properties": {
+        "seatIndex": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "buyIn": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "TableManagerLeaveTableBody": {
+      "type": "object"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1ActResponse": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/definitions/v1TableView"
+        }
+      }
+    },
+    "v1Action": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v1ActionType"
+        },
+        "amount": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1ActionType": {
+      "type": "string",
+      "enum": [
+        "ACTION_TYPE_UNSPECIFIED",
+        "ACTION_TYPE_FOLD",
+        "ACTION_TYPE_CHECK",
+        "ACTION_TYPE_CALL",
+        "ACTION_TYPE_RAISE",
+        "ACTION_TYPE_ALL_IN"
+      ],
+      "default": "ACTION_TYPE_UNSPECIFIED"
+    },
+    "v1Card": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "v1CreateTableRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "seatCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "smallBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "bigBlind": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1CreateTableResponse": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/definitions/v1TableView"
+        }
+      }
+    },
+    "v1GetTableResponse": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/definitions/v1TableView"
+        }
+      }
+    },
+    "v1HandView": {
+      "type": "object",
+      "properties": {
+        "handId": {
+          "type": "string"
+        },
+        "board": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Card"
+          }
+        },
+        "pots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Pot"
+          }
+        },
+        "street": {
+          "$ref": "#/definitions/v1Street"
+        },
+        "currentBet": {
+          "type": "string",
+          "format": "int64"
+        },
+        "activePlayer": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "button": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "smallBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "bigBlind": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "v1JoinTableResponse": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/definitions/v1TableView"
+        }
+      }
+    },
+    "v1LeaveTableResponse": {
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/definitions/v1TableView"
+        }
+      }
+    },
+    "v1ListTablesResponse": {
+      "type": "object",
+      "properties": {
+        "tables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1TableView"
+          }
+        }
+      }
+    },
+    "v1PlayerStatus": {
+      "type": "string",
+      "enum": [
+        "PLAYER_STATUS_UNSPECIFIED",
+        "PLAYER_STATUS_ACTIVE",
+        "PLAYER_STATUS_FOLDED",
+        "PLAYER_STATUS_ALL_IN",
+        "PLAYER_STATUS_SITTING_OUT"
+      ],
+      "default": "PLAYER_STATUS_UNSPECIFIED"
+    },
+    "v1Pot": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string",
+          "format": "int64"
+        },
+        "eligible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1SeatStatus": {
+      "type": "string",
+      "enum": [
+        "SEAT_STATUS_UNSPECIFIED",
+        "SEAT_STATUS_EMPTY",
+        "SEAT_STATUS_OCCUPIED"
+      ],
+      "default": "SEAT_STATUS_UNSPECIFIED"
+    },
+    "v1SeatView": {
+      "type": "object",
+      "properties": {
+        "seatIndex": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/v1SeatStatus"
+        },
+        "playerId": {
+          "type": "string"
+        },
+        "stack": {
+          "type": "string",
+          "format": "int64"
+        },
+        "playerStatus": {
+          "$ref": "#/definitions/v1PlayerStatus"
+        },
+        "currentBet": {
+          "type": "string",
+          "format": "int64"
+        },
+        "holeCards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Card"
+          }
+        },
+        "isViewer": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1Street": {
+      "type": "string",
+      "enum": [
+        "STREET_UNSPECIFIED",
+        "STREET_PREFLOP",
+        "STREET_FLOP",
+        "STREET_TURN",
+        "STREET_RIVER",
+        "STREET_SHOWDOWN"
+      ],
+      "default": "STREET_UNSPECIFIED"
+    },
+    "v1TableStatus": {
+      "type": "string",
+      "enum": [
+        "TABLE_STATUS_UNSPECIFIED",
+        "TABLE_STATUS_IDLE",
+        "TABLE_STATUS_IN_HAND"
+      ],
+      "default": "TABLE_STATUS_UNSPECIFIED"
+    },
+    "v1TableView": {
+      "type": "object",
+      "properties": {
+        "tableId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1TableStatus"
+        },
+        "seatCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "smallBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "bigBlind": {
+          "type": "string",
+          "format": "int64"
+        },
+        "button": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "activeHandId": {
+          "type": "string"
+        },
+        "seats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SeatView"
+          }
+        },
+        "hand": {
+          "$ref": "#/definitions/v1HandView"
+        }
+      }
+    }
+  }
+}
