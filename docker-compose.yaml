@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -69,6 +67,7 @@ services:
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.started --partitions 1 --replication-factor 1;
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.acted --partitions 1 --replication-factor 1;
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic hand.ended --partitions 1 --replication-factor 1;
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user.created --partitions 1 --replication-factor 1;
 
       echo 'Kafka topics created.';
       "
@@ -171,20 +170,39 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./services/engine/infra/grafana/provisioning:/etc/grafana/provisioning
     networks:
       - holdem
+    restart: unless-stopped
 
   swagger:
     image: swaggerapi/swagger-ui:latest
     ports:
       - "8082:8080"
     environment:
-      SWAGGER_JSON: /docs/engine/v1/engine.swagger.json
+      URLS: >-
+        [
+          {"url":"/docs/engine/v1/engine.swagger.json","name":"engine"},
+          {"url":"/docs/table_manager/v1/table_manager.swagger.json","name":"table-manager"}
+        ]
+      URLS_PRIMARY_NAME: table-manager
     volumes:
-      - ./services/engine/docs:/docs
+      - ./services/engine/docs/engine:/docs/engine:ro
+      - ./services/table-manager/docs/table_manager:/docs/table_manager:ro
     networks:
       - holdem
+
+  auth-migrator:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile.migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    secrets:
+      - postgres_password
+    networks:
+      - holdem
+    restart: "no"
 
   migrator:
     build:
@@ -198,6 +216,59 @@ services:
     networks:
       - holdem
     restart: "no"
+
+  table-manager-migrator:
+    build:
+      context: ./services/table-manager
+      dockerfile: Dockerfile.migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    secrets:
+      - postgres_password
+    networks:
+      - holdem
+    restart: "no"
+
+  wallet-migrator:
+    build:
+      context: ./services/wallet-service
+      dockerfile: Dockerfile.migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    secrets:
+      - postgres_password
+    networks:
+      - holdem
+    restart: "no"
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-migrator:
+        condition: service_completed_successfully
+      jaeger:
+        condition: service_started
+    ports:
+      - "8280:8280"
+      - "9291:9291"
+    secrets:
+      - postgres_password
+    volumes:
+      - ./services/auth-service/config:/app/config
+    networks:
+      - holdem
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8280/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   engine:
     build:
@@ -215,8 +286,8 @@ services:
       jaeger:
         condition: service_started
     ports:
-      - "9091:9091"
-      - "8080:8080"
+      - "127.0.0.1:9091:9091"
+      - "127.0.0.1:8080:8080"
     secrets:
       - postgres_password
     volumes:
@@ -226,6 +297,67 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=:9090"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  table-manager:
+    build:
+      context: ./services/table-manager
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      table-manager-migrator:
+        condition: service_completed_successfully
+      engine:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+    ports:
+      - "9190:9190"
+      - "8180:8180"
+      - "9191:9191"
+    secrets:
+      - postgres_password
+    volumes:
+      - ./services/table-manager/config:/app/config
+    networks:
+      - holdem
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:9190"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wallet-service:
+    build:
+      context: ./services/wallet-service
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wallet-migrator:
+        condition: service_completed_successfully
+      auth-service:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8380:8380"
+      - "9391:9391"
+    secrets:
+      - postgres_password
+    volumes:
+      - ./services/wallet-service/config:/app/config
+    networks:
+      - holdem
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8380/healthz >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -7,4 +7,16 @@ scrape_configs:
     static_configs:
       - targets: ["engine:9091"]
     metrics_path: /metrics
+  - job_name: table-manager
+    static_configs:
+      - targets: ["table-manager:9191"]
+    metrics_path: /metrics
+  - job_name: auth-service
+    static_configs:
+      - targets: ["auth-service:9291"]
+    metrics_path: /metrics
+  - job_name: wallet-service
+    static_configs:
+      - targets: ["wallet-service:9391"]
+    metrics_path: /metrics
  
