@@ -1,0 +1,25 @@
+grpc:
+  addr: ":9190"
+http:
+  addr: ":8180"
+metrics:
+  addr: ":9191"
+telemetry:
+  otlp_endpoint: "jaeger:4317"
+auth:
+  issuer: "holdem-auth"
+  jwks_url: "http://auth-service:8280/.well-known/jwks.json"
+  allow_legacy_user_header: true
+postgres:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  dbname: "holdem"
+  max_conns: 10
+  min_conns: 2
+  max_conn_idle_time: "30m"
+engine:
+  addr: "engine:9090"
+wallet:
+  base_url: "http://wallet-service:8380"
+  internal_token: "wallet-internal-dev-token"
